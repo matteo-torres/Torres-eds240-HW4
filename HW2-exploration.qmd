@@ -1,0 +1,136 @@
+---
+title: "HW2-exploration"
+author: "Matteo Torres"
+date: "February 5, 2025"
+format:
+  html:
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+## Load Packages
+```{r, output = FALSE}
+#| code-fold: true
+
+library(sf)
+library(tmap)
+library(here)
+library(tidyverse)
+```
+
+## Read Data
+```{r}
+# MARINe biodiversity data
+cbs_data <- readxl::read_excel(here("data", "MARINe_biodiversity_data", "cbs_data_2025.xlsx"), sheet = 3)
+
+# California shapefile
+ca_shp <- read_sf(here("data", "coastal_spatial_data", "coast.line.CA.shp"))
+```
+
+## Data Wrangling
+```{r}
+# Filter to hermit crab observations in CA
+hairy_hermit <- cbs_data %>%
+  filter(state_province == "California" & species_lump == "Pagurus hirsutiusculus")
+
+# Convert to an sf object for mapping
+hairy_hermit_sf <- st_as_sf(hairy_hermit, coords = c("longitude", "latitude"), crs = 4326)
+```
+
+## Data Visualizations
+```{r}
+#| code-fold: true
+
+# Plot the total observations by year
+hairy_hermit %>%
+  group_by(year) %>%
+  summarize(total = sum(total_count)) %>%
+  ggplot(aes(x = year, y = total)) +
+  geom_linerange(aes(ymin = 0, ymax = total)) +
+  geom_point(color = "darkblue") +
+  scale_x_continuous(expand = c(0, 0.2), limits = c(2000, 2024)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1000)) +
+  labs(y = "Total Number of Observations",
+       title = "MARINe Surveys of Hairy Hermit Crabs in CA (2000 - 2024)") +
+  theme_bw() +
+  theme(axis.title.x = element_blank())
+```
+
+```{r}
+#| code-fold: true
+
+# Plot observations by georegion
+hairy_hermit %>%
+  group_by(georegion) %>%
+  summarize(total = sum(total_count)) %>%
+  arrange(desc(total)) %>%
+  ggplot(aes(x = reorder(georegion, total), y = total)) +
+  geom_col(fill = "darkblue") +
+  geom_text(aes(label = total), hjust = -0.5) +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 3500)) +
+  coord_flip() +
+  labs(y = "Total Number of Observations",
+       title = "MARINe Surveys of Hairy Hermit Crabs\n by CA Georegion (2000 - 2024)") +
+  theme_bw() +
+  theme(axis.title.y = element_blank())
+```
+
+```{r}
+#| code-fold: true
+
+# Filter to observations in 2014
+yr_2014 <- hairy_hermit_sf %>%
+  filter(year == 2014)
+
+# Map total count of hermit crabs
+tm_shape(ca_shp) +
+  tm_lines() +
+tm_shape(yr_2014) +
+  tm_dots(size = "total_count", col = "black", scale = 0.7) +
+  tm_compass(position = c("right", "top")) +
+  tm_scale_bar(position = c("left", "bottom")) +
+  tm_layout(main.title = "Hairy Hermit Crab Distribution (2014)",
+            main.title.size = 1,
+            legend.outside = TRUE,
+            legend.title.size = 1,
+            legend.text.size = 0.8,
+            bg.color = "lightblue")
+```
+
+```{r}
+#| code-fold: true
+
+# Filter to observation in 2024
+yr_2024 <- hairy_hermit_sf %>%
+  filter(year == 2024)
+
+# Map total count of hermit crabs
+tm_shape(ca_shp) +
+  tm_lines() +
+tm_shape(yr_2024) +
+  tm_dots(size = "total_count", col = "black", scale = 0.7) +
+  tm_compass(position = c("right", "top")) +
+  tm_scale_bar(position = c("left", "bottom")) +
+  tm_layout(main.title = "Hairy Hermit Crab Distribution (2024)",
+            main.title.size = 1,
+            legend.outside = TRUE,
+            legend.title.size = 1,
+            legend.text.size = 0.8,
+            bg.color = "lightblue")
+```
+
+## Questions
+
+1. What have you learned about your data? Have any potentially interesting patterns emerged?
+
+- According to the surveys, there are dramatically different numbers of observations of hairy hermit crabs in California each year. No observable trend emerges as the years progress. Additionally, there are more observations in central California compared to other geo-regions.
+
+2. In HW #1, you outlined some questions that you wanted to answer using these data. Have you made any strides towards answering those questions? If yes, how so? If no, what next steps do you need to take (e.g. I need to create X plot type, I still need to track down Y data, I need to restructure existing data so that you can visualize it in Z ways, etc.)?
+
+- I attempted to map a species along the California coastline to analyze changes over a 10-year period. My goal was to determine whether the locations of the species have shifted. I still need to improve the map's aesthetics and consider faceting by year to better illustrate the differences across multiple years.
+
+3. What challenges do you foresee encountering with your data? These can be data wrangling and / or visualization challenges.
+
+- I’ve observed that most of my data is categorical, aside from the count observations and latitude/longitude information. This may make it challenging to find unique plots to include in my infographic.

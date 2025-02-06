@@ -49,4 +49,4 @@ po/*~
 rsconnect/
 
 # Ignore data folder
-MARINe_longterm_data/*
+data/*
